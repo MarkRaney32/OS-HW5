@@ -89,3 +89,17 @@ sys_uptime(void)
   release(&tickslock);
   return xticks;
 }
+
+// Added code
+
+int
+sys_mprotect(void)
+{
+  ;
+}
+
+int
+sys_munprotect(void)
+{
+  ;
+}
