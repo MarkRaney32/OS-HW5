@@ -385,10 +385,71 @@ copyout(pde_t *pgdir, uint va, void *p, uint len)
   return 0;
 }
 
-//PAGEBREAK!
-// Blank page.
-//PAGEBREAK!
-// Blank page.
-//PAGEBREAK!
-// Blank page.
+//Added
 
+// function declaration for use in mprotect and munprotect
+int modify_PTE_W(void *addr, int len, int erase);
+
+int mprotect(void *addr, int len) {
+  return modify_PTE_W(addr, len, 1);
+}
+
+int munprotect(void *addr, int len) {
+  return modify_PTE_W(addr, len, 0);
+}
+
+// if erase is set to 1, we set as read-only, otherwise
+// we set to writable.
+int modify_PTE_W(void *addr, int len, int erase) {
+
+  struct proc *current_proc = myproc();
+
+  // page table entry. mmu.h has pte_t typedef'd
+  // to uint, so basically just treat it as that.
+  pte_t *pte;
+
+  int addr_int = (int) addr;
+
+  // looping over (len) pages starting from addr
+  for(int i = addr_int; i < addr_int + len * PGSIZE; i += PGSIZE) {
+
+    // ==============================================================
+    // implement check for if addr is not page aligned, or addr points
+    // to a region that is not currently a part of the address space,
+    // or len is less than or equal to zero
+    // ==============================================================
+
+    // Fetching the current page table entry for the current process
+    // at virtual address i (casted to void* b/c that's the func param)
+    // and we set alloc (third param) to 0 b/c we don't want it allocating
+    // pages for pages that don't exist yet.
+    pte = walkpgdir(current_proc->pgdir, (void*) i, 0);
+
+    if(erase == 1) {
+      // sets pte equal to the bitwise and of itself and a binary where
+      // every bit except for the writable bit is 1. Thus, every bit
+      // outside of writable remains the same, and writable is certain
+      // to be set to 0.
+      pte = ~PTE_W & *pte;
+    }
+    else {
+      // sets pte equal to the bitwise or of itself and a binary where
+      // the writable bit is 1 and every other is 0. Thus, every bit
+      // outside of writable remains the same, and writable is certain
+      // to be set to 1.
+      pte = PTE_W | *pte;
+    }
+
+  }
+
+  // Allerting hardware of changes?
+  // This is how it was done in switchuvm
+  lcr3(V2P(current_proc->pgdir));
+}
+
+//PAGEBREAK!
+// Blank page.
+//PAGEBREAK!
+// Blank page.
+//PAGEBREAK!
+// Blank page.
