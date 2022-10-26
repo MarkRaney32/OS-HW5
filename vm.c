@@ -202,7 +202,8 @@ loaduvm(pde_t *pgdir, char *addr, struct inode *ip, uint offset, uint sz)
 
   if((uint) addr % PGSIZE != 0)
     panic("loaduvm: addr must be page aligned");
-  for(i = 0; i < sz; i += PGSIZE){
+  //added
+  for(i = PGSIZE; i < sz; i += PGSIZE){
     if((pte = walkpgdir(pgdir, addr+i, 0)) == 0)
       panic("loaduvm: address should exist");
     pa = PTE_ADDR(*pte);
@@ -322,6 +323,8 @@ copyuvm(pde_t *pgdir, uint sz)
 
   if((d = setupkvm()) == 0)
     return 0;
+
+  // added
   for(i = 0; i < sz; i += PGSIZE){
     if((pte = walkpgdir(pgdir, (void *) i, 0)) == 0)
       panic("copyuvm: pte should exist");
@@ -425,26 +428,36 @@ int modify_PTE_W(void *addr, int len, int erase) {
     // pages for pages that don't exist yet.
     pte = walkpgdir(current_proc->pgdir, (void*) i, 0);
 
+    cprintf("status: %s\n", erase == 1 ? "protecting" : "unprotecting");
+    cprintf("     i: %d\n", i);
+    cprintf("   max: %d\n\n", addr_int + len * PGSIZE);
+
+    //cprintf("pte: %d\n", *pte);
+
     if(erase == 1) {
       // sets pte equal to the bitwise and of itself and a binary where
       // every bit except for the writable bit is 1. Thus, every bit
       // outside of writable remains the same, and writable is certain
       // to be set to 0.
-      pte = ~PTE_W & *pte;
+      *pte = ~PTE_W & *pte;
     }
     else {
       // sets pte equal to the bitwise or of itself and a binary where
       // the writable bit is 1 and every other is 0. Thus, every bit
       // outside of writable remains the same, and writable is certain
       // to be set to 1.
-      pte = PTE_W | *pte;
+      *pte = PTE_W | *pte;
     }
+
+    //cprintf("pte: %d\n\n", *pte);
 
   }
 
   // Allerting hardware of changes?
   // This is how it was done in switchuvm
   lcr3(V2P(current_proc->pgdir));
+
+  return 1;
 }
 
 //PAGEBREAK!
