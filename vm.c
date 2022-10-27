@@ -202,8 +202,7 @@ loaduvm(pde_t *pgdir, char *addr, struct inode *ip, uint offset, uint sz)
 
   if((uint) addr % PGSIZE != 0)
     panic("loaduvm: addr must be page aligned");
-  //added
-  for(i = PGSIZE; i < sz; i += PGSIZE){
+  for(i = 0; i < sz; i += PGSIZE){
     if((pte = walkpgdir(pgdir, addr+i, 0)) == 0)
       panic("loaduvm: address should exist");
     pa = PTE_ADDR(*pte);
@@ -410,8 +409,11 @@ int modify_PTE_W(void *addr, int len, int erase) {
   // page table entry. mmu.h has pte_t typedef'd
   // to uint, so basically just treat it as that.
   pte_t *pte;
+  uint addr_int = (uint) addr;
 
-  int addr_int = (int) addr;
+  if(addr_int % PGSIZE != 0 || len <= 0) {
+    return -1;
+  }
 
   // looping over (len) pages starting from addr
   for(int i = addr_int; i < addr_int + len * PGSIZE; i += PGSIZE) {
@@ -426,13 +428,18 @@ int modify_PTE_W(void *addr, int len, int erase) {
     // at virtual address i (casted to void* b/c that's the func param)
     // and we set alloc (third param) to 0 b/c we don't want it allocating
     // pages for pages that don't exist yet.
-    pte = walkpgdir(current_proc->pgdir, (void*) i, 0);
+    pte = walkpgdir(current_proc->pgdir, (void *) i, 0);
 
+    // checking that the page is actually part of address space
+    if ((*pte & PTE_P) == 0) {
+      return -1;
+    }
+
+    /*
     cprintf("status: %s\n", erase == 1 ? "protecting" : "unprotecting");
     cprintf("     i: %d\n", i);
     cprintf("   max: %d\n\n", addr_int + len * PGSIZE);
-
-    //cprintf("pte: %d\n", *pte);
+    */
 
     if(erase == 1) {
       // sets pte equal to the bitwise and of itself and a binary where
@@ -449,15 +456,13 @@ int modify_PTE_W(void *addr, int len, int erase) {
       *pte = PTE_W | *pte;
     }
 
-    //cprintf("pte: %d\n\n", *pte);
-
   }
 
   // Allerting hardware of changes?
   // This is how it was done in switchuvm
   lcr3(V2P(current_proc->pgdir));
 
-  return 1;
+  return 0;
 }
 
 //PAGEBREAK!
