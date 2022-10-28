@@ -323,7 +323,8 @@ copyuvm(pde_t *pgdir, uint sz)
   if((d = setupkvm()) == 0)
     return 0;
 
-  // added
+  // added - Have i incrementor start at PGSIZE so that it
+  // jumps past the first page that is now empty.
   for(i = PGSIZE; i < sz; i += PGSIZE){
     if((pte = walkpgdir(pgdir, (void *) i, 0)) == 0)
       panic("copyuvm: pte should exist");
@@ -387,7 +388,7 @@ copyout(pde_t *pgdir, uint va, void *p, uint len)
   return 0;
 }
 
-//Added
+// added - mprotect and munprotect code
 
 // function declaration for use in mprotect and munprotect
 int modify_PTE_W(void *addr, int len, int erase);
@@ -411,18 +412,16 @@ int modify_PTE_W(void *addr, int len, int erase) {
   pte_t *pte;
   uint addr_int = (uint) addr;
 
+  // Checking that addr is page aligned. Also checks that len isn't some
+  // number below 1, but this shouldn't actually be necessary bcuz it is
+  // ideally being caught in sys_protect and sys_unprotect. We love to
+  // take precautions tho, and deserve an auto A on final exam.
   if(addr_int % PGSIZE != 0 || len <= 0) {
     return -1;
   }
 
   // looping over (len) pages starting from addr
   for(int i = addr_int; i < addr_int + len * PGSIZE; i += PGSIZE) {
-
-    // ==============================================================
-    // implement check for if addr is not page aligned, or addr points
-    // to a region that is not currently a part of the address space,
-    // or len is less than or equal to zero
-    // ==============================================================
 
     // Fetching the current page table entry for the current process
     // at virtual address i (casted to void* b/c that's the func param)

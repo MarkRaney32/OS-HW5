@@ -146,6 +146,8 @@ vectors.S: vectors.pl
 ULIB = ulib.o usys.o printf.o umalloc.o
 
 _%: %.o $(ULIB)
+	# added -Ttext 0x1000 so that the text starts at 0x1000, or 4096 in
+	# decimal, AKA the second page.
 	$(LD) $(LDFLAGS) -N -e main -Ttext 0x1000 -o $@ $^
 	$(OBJDUMP) -S $@ > $*.asm
 	$(OBJDUMP) -t $@ | sed '1,/SYMBOL TABLE/d; s/ .* / /; /^$$/d' > $*.sym
@@ -153,6 +155,8 @@ _%: %.o $(ULIB)
 _forktest: forktest.o $(ULIB)
 	# forktest has less library code linked in - needs to be small
 	# in order to be able to max out the proc table.
+	# =============================================================
+	# added -Ttext 0x1000 for same reason
 	$(LD) $(LDFLAGS) -N -e main -Ttext 0x1000 -o _forktest forktest.o ulib.o usys.o
 	$(OBJDUMP) -S _forktest > forktest.asm
 

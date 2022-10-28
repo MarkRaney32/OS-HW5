@@ -64,7 +64,8 @@ argptr(int n, char **pp, int size)
   if(argint(n, &i) < 0)
     return -1;
 
-  // added
+  // added - checking if size = 0 for returning -1 because size 0 now references
+  // the empty page and we don't want that.
   if(size < 0 || (uint)i >= curproc->sz || (uint)i+size > curproc->sz || size == 0)
     return -1;
   *pp = (char*)i;

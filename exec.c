@@ -39,7 +39,13 @@ exec(char *path, char **argv)
     goto bad;
 
   // Load program into memory.
+
+  // added - actually just modified.
+  // we want the proc's sz to be set to
+  // PGSIZE from onset so that the first
+  // page is never filled.
   sz = PGSIZE;
+
   for(i=0, off=elf.phoff; i<elf.phnum; i++, off+=sizeof(ph)){
     if(readi(ip, (char*)&ph, off, sizeof(ph)) != sizeof(ph))
       goto bad;

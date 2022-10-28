@@ -6,6 +6,8 @@
 void increment_while_protected();
 void protect_multiple_pages();
 void protect_too_many_pages();
+void fail_on_offset();
+void fail_on_len_0();
 
 int
 main(int argc, char *argv[])
@@ -14,6 +16,8 @@ main(int argc, char *argv[])
   increment_while_protected();
   protect_multiple_pages();
   protect_too_many_pages();
+  fail_on_offset();
+  fail_on_len_0();
 
   exit();
 }
@@ -86,4 +90,43 @@ void protect_too_many_pages() {
     exit();
   }
 
+}
+
+void fail_on_offset() {
+  char* sz = sbrk(0);
+  sbrk(PGSIZE);
+
+  *(sz+1) = 1;
+
+  int prot_return = mprotect(sz+1, 1);
+  int unprot_return = munprotect(sz+1, 1);
+
+  // We are trying to protect an address that is not aligned
+  // Thus we want it to fail
+  if (prot_return == -1 && unprot_return == -1){
+    printf(1, "Test 4.) Fail on offset              : Passed!\n");
+  } else {
+    printf(1, "Test 4.) Fail on offset              : Failed!\n");
+    exit();
+  }
+
+}
+
+void fail_on_len_0() {
+  char* sz = sbrk(0);
+  sbrk(PGSIZE);
+
+  *sz = 1;
+
+  int prot_return = mprotect(sz, 0);
+  int unprot_return = munprotect(sz, 0);
+
+  // We are trying to protect with len = 0, thus we want
+  // it to fail
+  if (prot_return == -1 && unprot_return == -1){
+    printf(1, "Test 5.) Fail on len 0               : Passed!\n");
+  } else {
+    printf(1, "Test 5.) Fail on len 0               : Failed!\n");
+    exit();
+  }
 }
